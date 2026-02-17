@@ -13,7 +13,7 @@ router.post('/signup',(req,res)=>{
     .then(result=>{
         if(result.length>0)
         {
-            return res.status(500).json({
+            return res.status(409).json({
                 msg:'email already exist'
             })
         }
@@ -39,15 +39,15 @@ router.post('/signup',(req,res)=>{
         const token = jwt.sign({
             firstName:result.firstName,
             lastName:result.lastName,
+            userId:result._id,
             email:result.email,
-            userId:result._id
         },
             'sbs 147',
             {
                 expiresIn:"365d"
             }
         )
-        res.status(200).json({
+        res.status(201).json({
             firstName:result.firstName,
             lastName:result.lastName,
             email:result.email,
@@ -77,59 +77,59 @@ router.post('/signup',(req,res)=>{
 
 // login api
 
-router.post('/login',(req,res)=>{
-    console.log(req.body)
-    User.find({email:req.body.email})
-    .then(user=>{
-        console.log(user)
-        if(user.length<1)
-        {
+router.post('/login', (req, res) => {
+
+    User.findOne({ email: req.body.email })
+    .then(user => {
+
+        if (!user) {
             return res.status(401).json({
-                msg:'user not exist'
-            })
+                msg: 'User does not exist'
+            });
         }
 
-        bcrypt.compare(req.body.password,user[0].password,(err,result)=>{
-            if(!result)
-            {
+        bcrypt.compare(req.body.password, user.password, (err, result) => {
+
+            if (!result) {
                 return res.status(401).json({
-                    msg:'invalid password'
-                })
+                    msg: 'Invalid password'
+                });
             }
 
-            //creating token
-            const token = jwt.sign({
-                firstName:user[0].firstName,
-                lastName:user[0].lastName,
-                email:user[0].email,
-                userId:user[0]._id
-            },
-                'sbs 147',
+            const token = jwt.sign(
                 {
-                    expiresIn:"365d"
-                }
-            )
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email,
+                    userId: user._id
+                },
+                'sbs 147',
+                { expiresIn: "365d" }
+            );
 
             res.status(200).json({
-                firstName:user[0].firstName,
-                lastName:user[0].lastName,
-                email:user[0].email,
-                userId:user[0]._id,
-                token:token
-            })
-        })
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                userId: user._id,
+                token: token
+            });
+
+        });
 
     })
-    .catch(err=>{
-        console.log(err)
-    })
-})
+    .catch(err => {
+        res.status(500).json({ error: err });
+    });
+
+});
+
 
 //check user
 router.get('/checkEmail/:email',(req,res)=>{
     User.find({email:req.params.email})
     .then(result=>{
-        if(result.length > 0)
+        if(result)
         {
             return res.status(200).json({
                 isAvailable:true
